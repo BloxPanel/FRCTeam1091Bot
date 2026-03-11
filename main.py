@@ -17,21 +17,18 @@ bot = commands.Bot(command_prefix=";", intents=discord.Intents.all())
 
 
 async def fetch_events():
-    """Fetch events list"""
-
-    if not API_KEY:
-        # Mock data for testing
-        return [
-            {"name": "Milwaukee Regional", "key": "2024mke"},
-            {"name": "Wisconsin Regional", "key": "2024wi"}
-        ]
-
     headers = {"Nexus-Api-Key": API_KEY}
     url = f"{NEXUS_API_URL}/events"
 
     async with aiohttp.ClientSession() as session:
-        async with session.get(url, headers=headers) as resp:
-            return await resp.json()
+        async with session.get(url, headers=headers) as resp: # type: ignore
+            data = await resp.json()
+
+            # return the actual list of events
+            if isinstance(data, dict):
+                return data.get("events", [])
+
+            return data
 
 
 async def fetch_event_data():
@@ -67,27 +64,28 @@ async def on_ready():
 
 @bot.command()
 async def setevent(ctx, *, event_name: str):
-    """Set event by name"""
     global EVENT_KEY
 
     events = await fetch_events()
 
+    if not events:
+        await ctx.send("❌ Could not fetch events from API.")
+        return
+
     for event in events:
-        # Determine if event is a dict or string
-        if isinstance(event, dict):
-            name = event.get("name") or event.get("label") or str(event)
-            key = event.get("key") or event.get("keyName") or str(event)
-        else:
-            # it's a string
-            name = str(event)
-            key = str(event)  # sometimes API returns key same as name
+        name = event.get("name", "")
+        key = event.get("key", "")
 
         if event_name.lower() in name.lower():
             EVENT_KEY = key
-            await ctx.send(f"✅ Event set to **{name}**\nKey: `{EVENT_KEY}`")
+
+            await ctx.send(
+                f"✅ Event set to **{name}**\n"
+                f"Event Key: `{EVENT_KEY}`"
+            )
             return
 
-    await ctx.send("❌ Could not find that event.")
+    await ctx.send("❌ Event not found.")
 
 
 @bot.command()
