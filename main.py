@@ -24,7 +24,7 @@ bot = commands.Bot(
     intents=intents,
 )
 
-DEMO_EVENT = True  # Set to True to use the demo event, False to require manual event setting
+DEMO_EVENT = False  # Set to True to use the demo event, False to require manual event setting
 
 if DEMO_EVENT:
     current_event = "demo0923"
